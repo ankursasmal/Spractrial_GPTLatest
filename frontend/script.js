@@ -263,61 +263,385 @@ async function showDataDetail(id) {
     }
 }
 
+// ============================================
+// PART 1: Main Chart Drawing Function
+// ============================================
 function drawSpectralChart(spectralData) {
     const canvas = document.getElementById('spectral-chart');
+    if (!canvas) return;
+
     const ctx = canvas.getContext('2d');
-    
     canvas.width = canvas.offsetWidth;
     canvas.height = canvas.offsetHeight;
-    
-    const padding = 40;
-    const width = canvas.width - 2 * padding;
-    const height = canvas.height - 2 * padding;
-    
-    // Find min/max values
+
+    const config = {
+        margin: { top: 40, right: 40, bottom: 70, left: 80 },
+        numXTicks: 8,
+        numYTicks: 8,
+        lineColor: '#2196F3',
+        gridColor: '#e0e0e0',
+        axisColor: '#333',
+        maxPoints: 50
+    };
+
+    const dimensions = {
+        width: canvas.width - config.margin.left - config.margin.right,
+        height: canvas.height - config.margin.top - config.margin.bottom
+    };
+
+    // Calculate data ranges
+    const ranges = calculateDataRanges(spectralData);
+
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Draw all chart components
+    drawGrid(ctx, canvas, config, dimensions);
+    drawAxes(ctx, canvas, config, dimensions);
+    drawAxisTicks(ctx, canvas, config, dimensions, ranges);
+    drawAxisLabels(ctx, canvas, config);
+    const dataPoints = drawDataLine(ctx, canvas, config, dimensions, spectralData, ranges);
+    drawDataPoints(ctx, dataPoints, config);
+
+    // Setup interactivity
+    setupCanvasHover(canvas, dataPoints, config, ranges);
+}
+
+// ============================================
+// PART 2: Data Range Calculation
+// ============================================
+function calculateDataRanges(spectralData) {
     const xValues = spectralData.map(point => point[0]);
     const yValues = spectralData.map(point => point[1]);
     const xMin = Math.min(...xValues);
     const xMax = Math.max(...xValues);
     const yMin = Math.min(...yValues);
     const yMax = Math.max(...yValues);
-    
-    // Clear canvas
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
-    // Draw axes
-    ctx.strokeStyle = '#333';
+
+    // Add padding to y-axis range
+    const yRange = yMax - yMin;
+    const paddedYMin = yMin - yRange * 0.1;
+    const paddedYMax = yMax + yRange * 0.1;
+
+    return { xMin, xMax, yMin, yMax, paddedYMin, paddedYMax };
+}
+
+// ============================================
+// PART 3: Grid Drawing
+// ============================================
+function drawGrid(ctx, canvas, config, dimensions) {
+    ctx.strokeStyle = config.gridColor;
     ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(padding, padding);
-    ctx.lineTo(padding, canvas.height - padding);
-    ctx.lineTo(canvas.width - padding, canvas.height - padding);
-    ctx.stroke();
-    
-    // Draw data
-    ctx.strokeStyle = '#2196F3';
+    ctx.setLineDash([2, 2]);
+
+    // Vertical grid lines
+    for (let i = 0; i <= config.numXTicks; i++) {
+        const x = config.margin.left + (dimensions.width / config.numXTicks) * i;
+        ctx.beginPath();
+        ctx.moveTo(x, config.margin.top);
+        ctx.lineTo(x, canvas.height - config.margin.bottom);
+        ctx.stroke();
+    }
+
+    // Horizontal grid lines
+    for (let i = 0; i <= config.numYTicks; i++) {
+        const y = config.margin.top + (dimensions.height / config.numYTicks) * i;
+        ctx.beginPath();
+        ctx.moveTo(config.margin.left, y);
+        ctx.lineTo(canvas.width - config.margin.right, y);
+        ctx.stroke();
+    }
+
+    ctx.setLineDash([]);
+}
+
+// ============================================
+// PART 4: Axes Drawing
+// ============================================
+function drawAxes(ctx, canvas, config, dimensions) {
+    ctx.strokeStyle = config.axisColor;
     ctx.lineWidth = 2;
     ctx.beginPath();
-    
+    ctx.moveTo(config.margin.left, config.margin.top);
+    ctx.lineTo(config.margin.left, canvas.height - config.margin.bottom);
+    ctx.lineTo(canvas.width - config.margin.right, canvas.height - config.margin.bottom);
+    ctx.stroke();
+}
+
+// ============================================
+// PART 5: Axis Ticks and Labels
+// ============================================
+function drawAxisTicks(ctx, canvas, config, dimensions, ranges) {
+    ctx.fillStyle = config.axisColor;
+    ctx.font = 'bold 11px Arial';
+
+    // X-axis ticks
+    ctx.textAlign = 'center';
+    for (let i = 0; i <= config.numXTicks; i++) {
+        const x = config.margin.left + (dimensions.width / config.numXTicks) * i;
+        const value = ranges.xMin + ((ranges.xMax - ranges.xMin) / config.numXTicks) * i;
+
+        ctx.beginPath();
+        ctx.moveTo(x, canvas.height - config.margin.bottom);
+        ctx.lineTo(x, canvas.height - config.margin.bottom + 5);
+        ctx.stroke();
+
+        ctx.fillText(value.toFixed(2), x, canvas.height - config.margin.bottom + 20);
+    }
+
+    // Y-axis ticks
+    ctx.textAlign = 'right';
+    for (let i = 0; i <= config.numYTicks; i++) {
+        const y = config.margin.top + (dimensions.height / config.numYTicks) * i;
+        const value = ranges.paddedYMax - ((ranges.paddedYMax - ranges.paddedYMin) / config.numYTicks) * i;
+
+        ctx.beginPath();
+        ctx.moveTo(config.margin.left - 5, y);
+        ctx.lineTo(config.margin.left, y);
+        ctx.stroke();
+
+        ctx.fillText(value.toFixed(3), config.margin.left - 10, y + 4);
+    }
+}
+
+// ============================================
+// PART 6: Axis Labels
+// ============================================
+function drawAxisLabels(ctx, canvas, config) {
+    ctx.fillStyle = '#000';
+    ctx.font = 'bold 14px Arial';
+    ctx.textAlign = 'center';
+
+    // X-axis label
+    ctx.fillText('Wavelength (μm)', canvas.width / 2, canvas.height - 10);
+
+    // Y-axis label (rotated)
+    ctx.save();
+    ctx.translate(15, canvas.height / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillText('Reflectance', 0, 0);
+    ctx.restore();
+}
+
+// ============================================
+// PART 7: Data Line Drawing
+// ============================================
+function drawDataLine(ctx, canvas, config, dimensions, spectralData, ranges) {
+    ctx.strokeStyle = config.lineColor;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+
+    const dataPoints = [];
     spectralData.forEach((point, index) => {
-        const x = padding + ((point[0] - xMin) / (xMax - xMin)) * width;
-        const y = canvas.height - padding - ((point[1] - yMin) / (yMax - yMin)) * height;
-        
+        const x = config.margin.left + ((point[0] - ranges.xMin) / (ranges.xMax - ranges.xMin)) * dimensions.width;
+        const y = canvas.height - config.margin.bottom - ((point[1] - ranges.paddedYMin) / (ranges.paddedYMax - ranges.paddedYMin)) * dimensions.height;
+
+        dataPoints.push({ x, y, wavelength: point[0], reflectance: point[1] });
+
         if (index === 0) {
             ctx.moveTo(x, y);
         } else {
             ctx.lineTo(x, y);
         }
     });
-    
+
     ctx.stroke();
-    
-    // Add labels
-    ctx.fillStyle = '#333';
-    ctx.font = '12px Arial';
-    ctx.fillText(`Wavelength: ${xMin.toFixed(2)} - ${xMax.toFixed(2)}`, padding, canvas.height - 10);
-    ctx.fillText(`Reflectance: ${yMin.toFixed(2)} - ${yMax.toFixed(2)}`, padding, 20);
+    return dataPoints;
 }
+
+// ============================================
+// PART 8: Data Points Drawing
+// ============================================
+function drawDataPoints(ctx, dataPoints, config) {
+    ctx.fillStyle = config.lineColor;
+    const step = Math.max(1, Math.floor(dataPoints.length / config.maxPoints));
+
+    for (let i = 0; i < dataPoints.length; i += step) {
+        ctx.beginPath();
+        ctx.arc(dataPoints[i].x, dataPoints[i].y, 3, 0, 2 * Math.PI);
+        ctx.fill();
+    }
+}
+
+// ============================================
+// PART 9: Hover Functionality Setup
+// ============================================
+function setupCanvasHover(canvas, dataPoints, config, ranges) {
+    const tooltip = getOrCreateTooltip();
+
+    // Remove old event listeners by cloning
+    const newCanvas = canvas.cloneNode(true);
+    canvas.parentNode.replaceChild(newCanvas, canvas);
+
+    newCanvas.addEventListener('mousemove', (e) => {
+        handleMouseMove(e, newCanvas, dataPoints, config, ranges, tooltip);
+    });
+
+    newCanvas.addEventListener('mouseleave', () => {
+        tooltip.style.display = 'none';
+        newCanvas.style.cursor = 'default';
+    });
+}
+
+// ============================================
+// PART 10: Tooltip Creation
+// ============================================
+function getOrCreateTooltip() {
+    let tooltip = document.getElementById('canvas-tooltip');
+
+    if (!tooltip) {
+        tooltip = document.createElement('div');
+        tooltip.id = 'canvas-tooltip';
+        Object.assign(tooltip.style, {
+            position: 'absolute',
+            background: 'rgba(0, 0, 0, 0.8)',
+            color: 'white',
+            padding: '8px 12px',
+            borderRadius: '6px',
+            fontSize: '12px',
+            pointerEvents: 'none',
+            display: 'none',
+            zIndex: '1000',
+            whiteSpace: 'nowrap'
+        });
+        document.body.appendChild(tooltip);
+    }
+
+    return tooltip;
+}
+
+// ============================================
+// PART 11: Mouse Move Handler
+// ============================================
+function handleMouseMove(e, canvas, dataPoints, config, ranges, tooltip) {
+    const rect = canvas.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+
+    const nearestPoint = findNearestPoint(mouseX, mouseY, dataPoints);
+
+    if (nearestPoint) {
+        redrawChartWithHighlight(canvas, dataPoints, config, ranges, nearestPoint);
+        showTooltip(tooltip, nearestPoint, e.clientX, e.clientY);
+        canvas.style.cursor = 'pointer';
+    } else {
+        tooltip.style.display = 'none';
+        canvas.style.cursor = 'default';
+    }
+}
+
+// ============================================
+// PART 12: Find Nearest Point
+// ============================================
+function findNearestPoint(mouseX, mouseY, dataPoints, threshold = 20) {
+    let nearestPoint = null;
+    let minDistance = Infinity;
+
+    dataPoints.forEach(point => {
+        const distance = Math.sqrt(
+            Math.pow(mouseX - point.x, 2) +
+            Math.pow(mouseY - point.y, 2)
+        );
+
+        if (distance < minDistance && distance < threshold) {
+            minDistance = distance;
+            nearestPoint = point;
+        }
+    });
+
+    return nearestPoint;
+}
+
+// ============================================
+// PART 13: Redraw with Highlight
+// ============================================
+function redrawChartWithHighlight(canvas, dataPoints, config, ranges, nearestPoint) {
+    const spectralData = dataPoints.map(p => [p.wavelength, p.reflectance]);
+    const ctx = canvas.getContext('2d');
+
+    // Redraw base chart
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
+
+    const dimensions = {
+        width: canvas.width - config.margin.left - config.margin.right,
+        height: canvas.height - config.margin.top - config.margin.bottom
+    };
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawGrid(ctx, canvas, config, dimensions);
+    drawAxes(ctx, canvas, config, dimensions);
+    drawAxisTicks(ctx, canvas, config, dimensions, ranges);
+    drawAxisLabels(ctx, canvas, config);
+    drawDataLine(ctx, canvas, config, dimensions, spectralData, ranges);
+    drawDataPoints(ctx, dataPoints, config);
+
+    // Highlight point
+    ctx.fillStyle = '#FF5722';
+    ctx.beginPath();
+    ctx.arc(nearestPoint.x, nearestPoint.y, 5, 0, 2 * Math.PI);
+    ctx.fill();
+
+    // Draw crosshair
+    drawCrosshair(ctx, canvas, config, nearestPoint);
+}
+
+// ============================================
+// PART 14: Crosshair Drawing
+// ============================================
+function drawCrosshair(ctx, canvas, config, point) {
+    ctx.strokeStyle = 'rgba(255, 87, 34, 0.5)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([5, 5]);
+
+    // Vertical line
+    ctx.beginPath();
+    ctx.moveTo(point.x, config.margin.top);
+    ctx.lineTo(point.x, canvas.height - config.margin.bottom);
+    ctx.stroke();
+
+    // Horizontal line
+    ctx.beginPath();
+    ctx.moveTo(config.margin.left, point.y);
+    ctx.lineTo(canvas.width - config.margin.right, point.y);
+    ctx.stroke();
+
+    ctx.setLineDash([]);
+}
+
+// ============================================
+// PART 15: Tooltip Display
+// ============================================
+function showTooltip(tooltip, point, clientX, clientY) {
+    tooltip.style.display = 'block';
+    tooltip.style.left = (clientX + 15) + 'px';
+    tooltip.style.top = (clientY - 30) + 'px';
+    tooltip.innerHTML = `
+        <strong>Wavelength:</strong> ${point.wavelength.toFixed(3)} μm<br>
+        <strong>Reflectance:</strong> ${point.reflectance.toFixed(4)}
+    `;
+}
+
+// ============================================
+// END OF MODULAR CANVAS CHART IMPLEMENTATION
+// ============================================
+// All chart functions are now split into 15 parts:
+// 1. Main drawing function
+// 2. Data range calculation
+// 3. Grid drawing
+// 4. Axes drawing
+// 5. Axis ticks and labels
+// 6. Axis labels
+// 7. Data line drawing
+// 8. Data points drawing
+// 9. Hover functionality setup
+// 10. Tooltip creation
+// 11. Mouse move handler
+// 12. Find nearest point
+// 13. Redraw with highlight
+// 14. Crosshair drawing
+// 15. Tooltip display
+// ============================================
 
 function closeModal() {
     document.getElementById('data-modal').style.display = 'none';
