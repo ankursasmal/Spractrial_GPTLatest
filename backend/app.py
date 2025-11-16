@@ -604,6 +604,15 @@ def extract_spectral_curve_from_graph(image_array):
             print("Failed to convert curve to spectral data")
             return None
 
+        # Add extraction method information to the result
+        wavelength_data['extraction_method'] = method_name
+        wavelength_data['extraction_analytics'] = {
+            'method_used': method_name,
+            'curve_points_detected': len(curve_points),
+            'total_methods_tried': len(curves_found),
+            'quality_score': wavelength_data.get('curve_quality_score', 0)
+        }
+
         print(f"Successfully extracted spectral curve:")
         print(f"  Method: {method_name}")
         print(f"  Wavelength range: {wavelength_data['wavelength_range']}")
@@ -2683,6 +2692,14 @@ def ensemble_prediction():
         wavelengths = np.array(extracted_curve['wavelength'])
         reflectance = np.array(extracted_curve['reflectance'])
 
+        # Get extraction analytics
+        extraction_analytics = extracted_curve.get('extraction_analytics', {
+            'method_used': 'unknown',
+            'curve_points_detected': 0,
+            'total_methods_tried': 0,
+            'quality_score': 0
+        })
+
         # Load dataset from MongoDB - use spectralGpt database
         spectral_client = MongoClient('mongodb://localhost:27017/')
         spectral_db = spectral_client['spectralGpt']
@@ -2729,6 +2746,7 @@ def ensemble_prediction():
                 'wavelength': wavelengths.tolist(),
                 'reflectance': reflectance.tolist()
             },
+            'extraction_analytics': clean_value_for_json(extraction_analytics),
             'best_method': result['best_method'],
             'best_prediction': result['best_prediction'],
             'best_score': float(result['best_score']),
@@ -2752,6 +2770,7 @@ def ensemble_prediction():
                 'reflectance': reflectance.tolist(),
                 'spectral_data': extracted_spectral_data  # Database-compatible format
             },
+            'extraction_analytics': clean_value_for_json(extraction_analytics),
             'best_method': result['best_method'],
             'best_prediction': result['best_prediction'],
             'best_score': float(result['best_score']),

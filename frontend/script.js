@@ -1444,11 +1444,18 @@ function displayEnsembleResults(result) {
     const accuracyScore = Math.round(result.accuracy_percentage || 0);
     const analytics = result.analytics || {};
     const methodResults = result.method_results || {};
+    const extractionAnalytics = result.extraction_analytics || {};
 
     // Determine confidence color
     const confidenceColor = accuracyScore >= 95 ? '#4CAF50' :
                            accuracyScore >= 85 ? '#8BC34A' :
                            accuracyScore >= 75 ? '#FF9800' : '#FF5722';
+
+    // Determine extraction quality color
+    const extractionQuality = extractionAnalytics.quality_score || 0;
+    const extractionColor = extractionQuality >= 7 ? '#4CAF50' :
+                           extractionQuality >= 5 ? '#8BC34A' :
+                           extractionQuality >= 3 ? '#FF9800' : '#FF5722';
 
     try {
         resultsContainer.innerHTML = `
@@ -1467,6 +1474,36 @@ function displayEnsembleResults(result) {
                     ${result.best_prediction}
                 </div>
             </div>
+
+            <!-- Extraction Analytics Section -->
+            ${extractionAnalytics.method_used ? `
+            <div class="analysis-section" style="background: linear-gradient(135deg, #e3f2fd, #bbdefb); border-left: 4px solid ${extractionColor};">
+                <h3>🔍 Graph Extraction Analytics</h3>
+                <div class="analytics-grid">
+                    <div class="analytics-card">
+                        <div class="analytics-label">Extraction Method</div>
+                        <div class="analytics-value" style="font-size: 1.2em; color: ${extractionColor};">
+                            ${extractionAnalytics.method_used.replace(/_/g, ' ').toUpperCase()}
+                        </div>
+                    </div>
+                    <div class="analytics-card">
+                        <div class="analytics-label">Curve Points Detected</div>
+                        <div class="analytics-value">${extractionAnalytics.curve_points_detected || 0}</div>
+                    </div>
+                    <div class="analytics-card">
+                        <div class="analytics-label">Methods Tried</div>
+                        <div class="analytics-value">${extractionAnalytics.total_methods_tried || 0}</div>
+                    </div>
+                    <div class="analytics-card">
+                        <div class="analytics-label">Extraction Quality</div>
+                        <div class="analytics-value" style="color: ${extractionColor};">${extractionQuality}/8</div>
+                    </div>
+                </div>
+                <div class="recommendation-box" style="margin-top: 15px; padding: 15px; background: white; border-left: 4px solid ${extractionColor};">
+                    <strong>📊 Extraction Info:</strong> The system tried ${extractionAnalytics.total_methods_tried || 0} different extraction methods and selected <strong>${extractionAnalytics.method_used.replace(/_/g, ' ')}</strong> as the most accurate method for extracting the spectral curve from your graph image.
+                </div>
+            </div>
+            ` : ''}
 
             <!-- Analytics Section -->
             <div class="analysis-section">
