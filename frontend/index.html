@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spectral Data Manager</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Welcome Screen -->
+    <div id="welcome-screen" class="screen active">
+        <div class="welcome-container">
+            <h1>Spectral Data Manager</h1>
+            <p>Manage and explore spectral data from MongoDB</p>
+            <div class="options">
+                <button class="btn primary" onclick="showAllData()">Show All Data</button>
+                <button class="btn secondary" onclick="showSearchData()">Search Specific Data</button>
+                <button class="btn upload" onclick="showImageUpload()">📷 Image Analysis</button>
+                <button class="btn upload" onclick="showGraphAnalysis()">📊 Graph Analysis</button>
+                <button class="btn upload" onclick="showHDRUpload()">🛰️ HDR Hyperspectral</button>
+                <button class="btn primary" onclick="showAdvancedAnalysis()">🔬 Advanced Analysis</button>
+                <button class="btn history" onclick="showHistory()">📋 Prediction History</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- All Data Screen -->
+    <div id="all-data-screen" class="screen">
+        <div class="header">
+            <h2>All Spectral Data</h2>
+            <button class="btn back" onclick="showWelcome()">← Back</button>
+        </div>
+        <div class="data-container">
+            <div id="data-list"></div>
+            <div id="pagination"></div>
+        </div>
+    </div>
+
+    <!-- Search Data Screen -->
+    <div id="search-screen" class="screen">
+        <div class="header">
+            <h2>Search Spectral Data</h2>
+            <button class="btn back" onclick="showWelcome()">← Back</button>
+        </div>
+        <div class="search-container">
+            <div class="search-row">
+                <input type="text" id="search-input" placeholder="Search by name, type, or class...">
+                <button class="btn primary" onclick="searchData()">Search</button>
+                <button class="btn secondary" onclick="clearFilters()">Clear All</button>
+            </div>
+            <div class="filters-row">
+                <div class="filter-group">
+                    <label for="type-filter">Type:</label>
+                    <select id="type-filter" onchange="onTypeChange()">
+                        <option value="">All Types</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="class-filter">Class:</label>
+                    <select id="class-filter" onchange="onClassChange()" disabled>
+                        <option value="">All Classes</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="subclass-filter">Subclass:</label>
+                    <select id="subclass-filter" onchange="searchData()" disabled>
+                        <option value="">All Subclasses</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="data-container">
+            <div id="search-results"></div>
+            <div id="search-pagination"></div>
+        </div>
+    </div>
+
+    <!-- Image Upload Screen -->
+    <div id="image-upload-screen" class="screen">
+        <div class="header">
+            <h2>📷 Image Analysis</h2>
+            <button class="btn back" onclick="showWelcome()">← Back</button>
+        </div>
+        <div class="upload-container">
+            <div class="upload-methods">
+                <div class="upload-method">
+                    <h3>📁 Upload Image</h3>
+                    <div class="file-drop-zone" id="file-drop-zone">
+                        <p>Drag & drop an image here or click to select</p>
+                        <input type="file" id="file-input" accept="image/*" style="display: none;">
+                        <button class="btn secondary" onclick="document.getElementById('file-input').click()">Choose File</button>
+                    </div>
+                </div>
+                <div class="upload-method">
+                    <h3>📸 Take Photo</h3>
+                    <div class="camera-container">
+                        <video id="camera-video" autoplay playsinline style="display: none;"></video>
+                        <canvas id="camera-canvas" style="display: none;"></canvas>
+                        <div class="camera-controls">
+                            <button class="btn primary" id="start-camera-btn" onclick="startCamera()">Start Camera</button>
+                            <button class="btn secondary" id="capture-btn" onclick="capturePhoto()" style="display: none;">Capture Photo</button>
+                            <button class="btn back" id="stop-camera-btn" onclick="stopCamera()" style="display: none;">Stop Camera</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="preview-container" id="preview-container" style="display: none;">
+                <h3>Preview</h3>
+                <img id="preview-image" alt="Preview">
+                <div class="preview-controls">
+                    <button class="btn primary" onclick="analyzeImage()">🔍 Analyze Image</button>
+                    <button class="btn secondary" onclick="clearPreview()">Clear</button>
+                </div>
+            </div>
+            <div class="loading-container" id="loading-container" style="display: none;">
+                <div class="loading-spinner"></div>
+                <p>Analyzing image...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Graph Analysis Screen -->
+    <div id="graph-analysis-screen" class="screen">
+        <div class="header">
+            <h2>📊 Graph Analysis</h2>
+            <button class="btn back" onclick="showWelcome()">← Back</button>
+        </div>
+        <div class="upload-container">
+            <div class="upload-methods">
+                <div class="upload-method">
+                    <h3>Upload Graph Image</h3>
+                    <div class="file-drop-zone" id="graph-drop-zone">
+                        <p>Drag & drop a spectral graph image here or click to select</p>
+                        <input type="file" id="graph-input" accept="image/*" style="display: none;">
+                        <button class="btn secondary" onclick="document.getElementById('graph-input').click()">Choose File</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="graph-preview-container" class="preview-container" style="display: none;">
+                <h3>Graph Preview</h3>
+                <img id="graph-preview-image" class="preview-image" alt="Graph Preview">
+                <div class="preview-controls">
+                    <button class="btn primary" onclick="analyzeGraph()">🔍 Analyze Graph</button>
+                    <button class="btn secondary" onclick="clearGraphPreview()">Clear</button>
+                </div>
+            </div>
+
+            <div id="graph-loading-container" class="loading-container" style="display: none;">
+                <div class="loading-spinner"></div>
+                <p>Analyzing spectral graph...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- HDR Upload Screen -->
+    <div id="hdr-upload-screen" class="screen">
+        <div class="header">
+            <h2>🛰️ HDR Hyperspectral Analysis</h2>
+            <button class="btn back" onclick="showWelcome()">← Back</button>
+        </div>
+        <div class="upload-container">
+            <div class="upload-methods">
+                <div class="upload-method">
+                    <h3>📁 Upload Hyperspectral File</h3>
+                    <p class="upload-hint">Supported formats:</p>
+                    <ul class="upload-hint">
+                        <li><strong>.hdr</strong> - ENVI format (+ optional .img file)</li>
+                        <li><strong>.csv</strong> - CSV with wavelength,reflectance columns</li>
+                    </ul>
+                    <div class="file-drop-zone" id="hdr-drop-zone">
+                        <p>Drag & drop file here or click to select</p>
+                        <input type="file" id="hdr-file-input" accept=".hdr,.csv" style="display: none;">
+                        <button class="btn secondary" onclick="document.getElementById('hdr-file-input').click()">Choose File (.hdr or .csv)</button>
+                    </div>
+                    <div class="file-drop-zone" id="img-drop-zone" style="margin-top: 15px;">
+                        <p>Optional: Upload corresponding .img file (for .hdr only)</p>
+                        <input type="file" id="img-file-input" accept=".img" style="display: none;">
+                        <button class="btn secondary" onclick="document.getElementById('img-file-input').click()">Choose IMG File (Optional)</button>
+                    </div>
+                    <div id="hdr-file-info" style="margin-top: 15px; display: none;">
+                        <p><strong>File:</strong> <span id="hdr-filename"></span></p>
+                        <p><strong>IMG File:</strong> <span id="img-filename">Not selected</span></p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="hdr-preview-container" class="preview-container" style="display: none;">
+                <h3>HDR File Ready</h3>
+                <div class="preview-controls">
+                    <button class="btn primary" onclick="analyzeHDR()">🔍 Analyze HDR File</button>
+                    <button class="btn secondary" onclick="clearHDRPreview()">Clear</button>
+                </div>
+            </div>
+
+            <div id="hdr-loading-container" class="loading-container" style="display: none;">
+                <div class="loading-spinner"></div>
+                <p>Processing hyperspectral data...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Advanced Analysis Screen -->
+    <div id="advanced-analysis-screen" class="screen">
+        <div class="header">
+            <h2>🔬 Advanced Spectral Analysis</h2>
+            <button class="btn back" onclick="showWelcome()">← Back</button>
+        </div>
+        <div class="upload-container">
+            <div class="analysis-methods">
+                <h3>Analysis Methods Available</h3>
+                <div class="methods-grid">
+                    <div class="method-card">
+                        <h4>🌊 Wavelet Transform</h4>
+                        <p>Time-frequency analysis for spectral features</p>
+                    </div>
+                    <div class="method-card">
+                        <h4>📐 Cosine Similarity</h4>
+                        <p>Mathematical comparison with database</p>
+                    </div>
+                    <div class="method-card">
+                        <h4>🔄 Hilbert Transform</h4>
+                        <p>Amplitude and phase analysis</p>
+                    </div>
+                    <div class="method-card">
+                        <h4>🔺 Fractal Analysis</h4>
+                        <p>Self-similarity and complexity measures</p>
+                    </div>
+                    <div class="method-card">
+                        <h4>📊 Spectral Depth</h4>
+                        <p>Absorption features and band analysis</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="upload-methods">
+                <div class="upload-method">
+                    <h3>Upload Image for Advanced Analysis</h3>
+                    <div class="file-drop-zone" id="advanced-drop-zone">
+                        <p>Drag & drop an image here or click to select</p>
+                        <p class="upload-hint">Supports both spectral graphs and material images</p>
+                        <input type="file" id="advanced-input" accept="image/*" style="display: none;">
+                        <button class="btn secondary" onclick="document.getElementById('advanced-input').click()">Choose File</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="advanced-preview-container" class="preview-container" style="display: none;">
+                <h3>Image Preview</h3>
+                <img id="advanced-preview-image" class="preview-image" alt="Preview">
+                <div class="analysis-type-selector">
+                    <h4>Analysis Type</h4>
+                    <label><input type="radio" name="analysisType" value="auto" checked> Auto-detect</label>
+                    <label><input type="radio" name="analysisType" value="graph"> Spectral Graph</label>
+                    <label><input type="radio" name="analysisType" value="material"> Material Image</label>
+                </div>
+                <div class="preview-controls">
+                    <button class="btn primary" onclick="performAdvancedAnalysis()">🔬 Start Advanced Analysis</button>
+                    <button class="btn secondary" onclick="clearAdvancedPreview()">Clear</button>
+                </div>
+            </div>
+
+            <div id="advanced-loading-container" class="loading-container" style="display: none;">
+                <div class="loading-spinner"></div>
+                <p>Performing advanced spectral analysis...</p>
+                <div class="analysis-progress">
+                    <div class="progress-step">🌊 Wavelet Transform</div>
+                    <div class="progress-step">📐 Cosine Similarity</div>
+                    <div class="progress-step">🔄 Hilbert Transform</div>
+                    <div class="progress-step">🔺 Fractal Analysis</div>
+                    <div class="progress-step">📊 Spectral Depth</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Prediction Results Screen -->
+    <div id="results-screen" class="screen">
+        <div class="header">
+            <h2>🔬 Analysis Results</h2>
+            <button class="btn back" onclick="showImageUpload()">← Back to Upload</button>
+        </div>
+        <div class="results-container" id="results-container">
+            <!-- Results will be populated by JavaScript -->
+        </div>
+    </div>
+
+    <!-- History Screen -->
+    <div id="history-screen" class="screen">
+        <div class="header">
+            <h2>📋 Prediction History</h2>
+            <button class="btn back" onclick="showWelcome()">← Back</button>
+            <button class="btn danger" onclick="clearAllHistory()">🗑️ Clear All</button>
+        </div>
+        <div class="history-container">
+            <div id="history-list"></div>
+            <div id="history-pagination"></div>
+        </div>
+    </div>
+
+    <!-- Data Detail Modal -->
+    <div id="data-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <div id="modal-body"></div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

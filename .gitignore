@@ -1,0 +1,26 @@
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Environment files
+.env
+
+# Virtual environments
+venv/
+env/
+
+# Large dataset file
+backend/ecospeclib_all.json
+
+# Uploads folder (optional)
+backend/uploads/
+
+# Node modules (if frontend ever uses npm)
+frontend/node_modules/
+
+# OS-specific files
+.DS_Store
+
+# Magic config (optional)
+.magi-code
