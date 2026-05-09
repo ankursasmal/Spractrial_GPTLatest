@@ -2,6 +2,9 @@ fastapi
 uvicorn
 numpy
 pymongo
-openai
 python-dotenv
 scipy
+requests
+torch
+torchvision
+scikit-learn

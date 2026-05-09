@@ -1,8 +1,9 @@
 from pymongo import MongoClient
-from app.core.config import MONGO_URI, DB_NAME, COLLECTION_NAME
 
-client = MongoClient(MONGO_URI)
+client = MongoClient(
+    "mongodb://localhost:27017"
+)
 
-db = client[DB_NAME]
+db = client["spectralGpt"]
 
-collection = db[COLLECTION_NAME]
+collection = db["spectralData"]
