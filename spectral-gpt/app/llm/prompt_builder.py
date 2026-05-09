@@ -1,25 +1,57 @@
-def build_prompt(matches):
+def build_explanation_prompt(
+    matches,
+    context
+):
 
-    context = ""
+    match_text = ""
 
-    for m in matches:
+    for m in matches[:5]:
 
-        context += f"""
-        Material: {m['material']}
-        Class: {m['class']}
-        Accuracy: {m['accuracy']}
-        """
+        match_text += f"""
+Material: {m.get('material')}
+Class: {m.get('class_name')}
+Subclass: {m.get('subclass')}
+Score: {m.get('accuracy', m.get('siamese_similarity'))}
+"""
 
     prompt = f"""
-    Analyze the following spectral matching results.
+You are an expert spectroscopy scientist.
 
-    {context}
+Retrieved database context:
 
-    Explain:
-    1. probable material
-    2. why spectrum matches
-    3. scientific interpretation
-    4. confidence level
-    """
+{context}
+
+Top spectral matches:
+
+{match_text}
+
+Tasks:
+1. Identify most probable material
+2. Explain spectral similarity
+3. Mention ambiguity if close matches exist
+4. Explain confidence scientifically
+5. Mention if material may be unknown
+"""
+
+    return prompt
+
+
+def build_chat_prompt(
+    question,
+    context
+):
+
+    prompt = f"""
+You are an expert spectroscopy assistant.
+
+Use ONLY the following database context:
+
+{context}
+
+User question:
+{question}
+
+Provide a scientific answer.
+"""
 
     return prompt

@@ -1,15 +1,25 @@
 from fastapi import APIRouter
-from app.llm.openai_client import ask_llm
+
+from app.services.chat_service import (
+    handle_chat
+)
 
 router = APIRouter()
 
-@router.post("/chat")
 
+@router.post("/chat")
 async def spectral_chat(payload: dict):
 
     question = payload.get("question")
 
-    response = ask_llm(question)
+    if not question:
+        return {
+            "response": "Question required"
+        }
+
+    response = handle_chat(
+        question
+    )
 
     return {
         "response": response

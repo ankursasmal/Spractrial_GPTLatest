@@ -1,10 +1,32 @@
-from app.llm.prompt_builder import build_prompt
-from app.llm.openai_client import ask_llm
+from app.llm.prompt_builder import (
+    build_explanation_prompt,
+    build_chat_prompt
+)
 
-def generate_explanation(matches):
+from app.llm.ollama_client import ask_llm
 
-    prompt = build_prompt(matches)
 
-    explanation = ask_llm(prompt)
+def generate_explanation(
+    matches,
+    context
+):
 
-    return explanation
+    prompt = build_explanation_prompt(
+        matches,
+        context
+    )
+
+    return ask_llm(prompt)
+
+
+def generate_chat_response(
+    question,
+    context
+):
+
+    prompt = build_chat_prompt(
+        question,
+        context
+    )
+
+    return ask_llm(prompt)
